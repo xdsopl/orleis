@@ -49,44 +49,30 @@ int getbyte() {
 int encode() {
 	if (fill_ibuffer())
 		return 0;
-	int byte, prev = -1, count = -1;
+	int byte, prev = getbyte(), count = 0;
+	if (prev == EOF)
+		return 1;
 	while ((byte = getbyte()) != EOF) {
-		if (byte == 0 || byte == 255) {
-			if (prev == byte) {
-				if (count < 255) {
-					++count;
-				} else {
-					if (putbyte(count))
-						return 1;
-					if (putbyte(byte))
-						return 1;
-					count = 0;
-				}
-			} else if (count < 0) {
-				if (putbyte(byte))
-					return 1;
-				count = 0;
-				prev = byte;
-			} else {
-				if (putbyte(count))
-					return 1;
-				if (putbyte(byte))
-					return 1;
-				count = 0;
-				prev = byte;
-			}
+		if (prev == byte && count < 255) {
+			++count;
 		} else {
-			if (count >= 0) {
+			if (putbyte(prev))
+				return 1;
+			if (prev == 0 || prev == 255) {
 				if (putbyte(count))
 					return 1;
-				count = -1;
-				prev = -1;
+			} else {
+				while (count--)
+					if (putbyte(prev))
+						return 1;
 			}
-			if (putbyte(byte))
-				return 1;
+			count = 0;
 		}
+		prev = byte;
 	}
-	if (count >= 0 && putbyte(count))
+	if (putbyte(prev))
+		return 1;
+	if ((prev == 0 || prev == 255) && putbyte(count))
 		return 1;
 	if (flush_obuffer())
 		return 1;
