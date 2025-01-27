@@ -10,58 +10,58 @@ Copyright 2025 Ahmet Inan <xdsopl@gmail.com>
 
 int encode() {
 	int byte, prev = -1, count = -1;
-	while ((byte = getchar()) != EOF) {
+	while ((byte = getchar_unlocked()) != EOF) {
 		if (byte == 0 || byte == 255) {
 			if (prev == byte) {
 				if (count < 255) {
 					++count;
 				} else {
-					if (putchar(count) == EOF)
+					if (putchar_unlocked(count) == EOF)
 						return 1;
-					if (putchar(byte) == EOF)
+					if (putchar_unlocked(byte) == EOF)
 						return 1;
 					count = 0;
 				}
 			} else if (count < 0) {
-				if (putchar(byte) == EOF)
+				if (putchar_unlocked(byte) == EOF)
 					return 1;
 				count = 0;
 				prev = byte;
 			} else {
-				if (putchar(count) == EOF)
+				if (putchar_unlocked(count) == EOF)
 					return 1;
-				if (putchar(byte) == EOF)
+				if (putchar_unlocked(byte) == EOF)
 					return 1;
 				count = 0;
 				prev = byte;
 			}
 		} else {
 			if (count >= 0) {
-				if (putchar(count) == EOF)
+				if (putchar_unlocked(count) == EOF)
 					return 1;
 				count = -1;
 				prev = -1;
 			}
-			if (putchar(byte) == EOF)
+			if (putchar_unlocked(byte) == EOF)
 				return 1;
 		}
 	}
-	if (count >= 0 && putchar(count) == EOF)
+	if (count >= 0 && putchar_unlocked(count) == EOF)
 		return 1;
 	return 0;
 }
 
 int decode() {
 	int byte;
-	while ((byte = getchar()) != EOF) {
-		if (putchar(byte) == EOF)
+	while ((byte = getchar_unlocked()) != EOF) {
+		if (putchar_unlocked(byte) == EOF)
 			return 1;
 		if (byte == 0 || byte == 255) {
-			int count = getchar();
+			int count = getchar_unlocked();
 			if (count == EOF)
 				return 1;
 			while (count--)
-				if (putchar(byte) == EOF)
+				if (putchar_unlocked(byte) == EOF)
 					return 1;
 		}
 	}
