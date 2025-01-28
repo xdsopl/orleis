@@ -1,4 +1,4 @@
-CFLAGS = -std=gnu99 -W -Wall -Ofast
+CFLAGS = -std=c99 -W -Wall -Ofast
 # CFLAGS += -g -fsanitize=address
 
 test: orleis
