@@ -1,5 +1,5 @@
 /*
-Byte based run length encoding
+Byte based adaptive run length encoding
 
 Copyright 2025 Ahmet Inan <xdsopl@gmail.com>
 */
@@ -46,33 +46,43 @@ int getbyte() {
 	return ibuffer[ibytes++];
 }
 
+static char score[256];
+
+void update(int prev, int byte) {
+	if (byte == prev) {
+		if (score[byte] < 127)
+			++score[byte];
+	} else {
+		if (score[byte] > -128)
+			--score[byte];
+	}
+}
+
 int encode() {
 	if (fill_ibuffer())
 		return 0;
 	int byte, prev = getbyte(), count = 0;
 	if (prev == EOF)
+		return 0;
+	if (putbyte(prev))
 		return 1;
 	while ((byte = getbyte()) != EOF) {
 		if (prev == byte && count < 255) {
-			++count;
-		} else {
-			if (putbyte(prev))
-				return 1;
-			if (prev == 0 || prev == 255) {
-				if (putbyte(count))
-					return 1;
-			} else {
-				while (count--)
-					if (putbyte(prev))
-						return 1;
+			if (score[byte] > 0) {
+				++count;
+				continue;
 			}
+		} else {
+			if (score[prev] > 0 && putbyte(count))
+				return 1;
 			count = 0;
 		}
+		if (putbyte(byte))
+			return 1;
+		update(prev, byte);
 		prev = byte;
 	}
-	if (putbyte(prev))
-		return 1;
-	if ((prev == 0 || prev == 255) && putbyte(count))
+	if (score[prev] > 0 && putbyte(count))
 		return 1;
 	if (flush_obuffer())
 		return 1;
@@ -82,11 +92,16 @@ int encode() {
 int decode() {
 	if (fill_ibuffer())
 		return 0;
-	int byte;
+	int byte, prev = getbyte();
+	if (prev == EOF)
+		return 0;
+	if (putbyte(prev))
+		return 1;
 	while ((byte = getbyte()) != EOF) {
+		update(prev, byte);
 		if (putbyte(byte))
 			return 1;
-		if (byte == 0 || byte == 255) {
+		if (score[byte] > 0) {
 			int count = getbyte();
 			if (count == EOF)
 				return 1;
@@ -94,6 +109,7 @@ int decode() {
 				if (putbyte(byte))
 					return 1;
 		}
+		prev = byte;
 	}
 	if (flush_obuffer())
 		return 1;
