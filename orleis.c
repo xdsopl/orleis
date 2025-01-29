@@ -80,6 +80,10 @@ void update(int prev, int byte) {
 	}
 }
 
+int good(int byte) {
+	return score[byte] > 0;
+}
+
 int encode() {
 	if (fill_ibuffer())
 		return 0;
@@ -90,12 +94,12 @@ int encode() {
 		return 1;
 	while ((byte = getbyte()) != EOF) {
 		if (prev == byte && count < 268435455) {
-			if (score[byte] > 0) {
+			if (good(byte)) {
 				++count;
 				continue;
 			}
 		} else {
-			if (score[prev] > 0 && put_leb128(count))
+			if (good(prev) && put_leb128(count))
 				return 1;
 			count = 0;
 		}
@@ -104,7 +108,7 @@ int encode() {
 		update(prev, byte);
 		prev = byte;
 	}
-	if (score[prev] > 0 && put_leb128(count))
+	if (good(prev) && put_leb128(count))
 		return 1;
 	if (flush_obuffer())
 		return 1;
@@ -123,7 +127,7 @@ int decode() {
 		update(prev, byte);
 		if (putbyte(byte))
 			return 1;
-		if (score[byte] > 0) {
+		if (good(byte)) {
 			int count = get_leb128();
 			if (count == EOF)
 				return 1;
