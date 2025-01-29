@@ -46,6 +46,28 @@ int getbyte() {
 	return ibuffer[ibytes++];
 }
 
+int put_leb128(int value)
+{
+	while (value >= 128) {
+		if (putbyte((value & 127) | 128))
+			return 1;
+		value >>= 7;
+	}
+	return putbyte(value);
+}
+
+int get_leb128()
+{
+	int byte, shift = 0, value = 0;
+	while ((byte = getbyte()) >= 128) {
+		value |= (byte & 127) << shift;
+		shift += 7;
+	}
+	if (byte < 0)
+		return byte;
+	return value | (byte << shift);
+}
+
 static char score[256];
 
 void update(int prev, int byte) {
@@ -67,13 +89,13 @@ int encode() {
 	if (putbyte(prev))
 		return 1;
 	while ((byte = getbyte()) != EOF) {
-		if (prev == byte && count < 255) {
+		if (prev == byte && count < 268435455) {
 			if (score[byte] > 0) {
 				++count;
 				continue;
 			}
 		} else {
-			if (score[prev] > 0 && putbyte(count))
+			if (score[prev] > 0 && put_leb128(count))
 				return 1;
 			count = 0;
 		}
@@ -82,7 +104,7 @@ int encode() {
 		update(prev, byte);
 		prev = byte;
 	}
-	if (score[prev] > 0 && putbyte(count))
+	if (score[prev] > 0 && put_leb128(count))
 		return 1;
 	if (flush_obuffer())
 		return 1;
@@ -102,7 +124,7 @@ int decode() {
 		if (putbyte(byte))
 			return 1;
 		if (score[byte] > 0) {
-			int count = getbyte();
+			int count = get_leb128();
 			if (count == EOF)
 				return 1;
 			while (count--)
